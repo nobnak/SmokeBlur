@@ -33,7 +33,7 @@
 
 		// Accumulation
 		Pass {
-			Blend SrcAlpha One
+			Blend SrcAlpha OneMinusSrcAlpha
 
 			CGPROGRAM
 			#pragma target 5.0
@@ -43,7 +43,7 @@
 			
 			fixed4 frag (v2f i) : SV_Target {
 				fixed4 c = tex2D(_MainTex, i.uv);
-				return float4(c.rgb, _Accum);
+				return float4(c.rgb, c.a * _Accum);
 			}
 			ENDCG
 		}

@@ -15,10 +15,10 @@ namespace SmokeBlurSystem {
 
 		public Shader shader;
 
-		public float accum = 0.01f;
-		public float atten = 0.01f;
+		public float accum = 0.8f;
+		public float atten = 0.001f;
 		public float blurSigma = 0.85f;
-		public int blurIter = 1;
+		public int blurIter = 3;
 
 		Material _mat;
 		Matrix4x4 _blurMat;
@@ -55,20 +55,25 @@ namespace SmokeBlurSystem {
 			_mat.SetFloat(PROP_ACCUM, accum);
 			_mat.SetFloat(PROP_ATTEN, atten);
 			_mat.SetMatrix(PROP_BLUR_MAT, _blurMat);
-			Graphics.Blit(src, _blurTex0, _mat, PASS_ACCUM);
+
+			_blurTex1.DiscardContents();
+			Graphics.Blit(_blurTex0, _blurTex1, _mat, PASS_ATTEN);
+			SwapTex();
 
 			for (var i = 0; i < blurIter; i++) {
+				_blurTex1.DiscardContents();
 				Graphics.Blit(_blurTex0, _blurTex1, _mat, PASS_BLUR);
 				SwapTex();
 			}
 
-			Graphics.Blit(_blurTex0, _blurTex1, _mat, PASS_ATTEN);
-			Graphics.Blit(_blurTex1, dst);
-			SwapTex();
+			Graphics.Blit(src, _blurTex0, _mat, PASS_ACCUM);
+
+			Graphics.Blit(_blurTex0, dst);
 		}
 
 		void ReleaseTex() {
 			Destroy(_blurTex0);
+			Destroy(_blurTex1);
 		}
 
 		void SwapTex() {
