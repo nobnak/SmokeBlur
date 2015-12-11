@@ -1,13 +1,12 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-namespace WatercolorBlueSystem {
+namespace SmokeBlurSystem {
 
 	public class Mova : MonoBehaviour {
 		public const string PROP_COLOR = "_Color";
 
 		public GameObject cubefab;
-		public Vector3 angularVelocity;
 		public int count = 100;
 		public float radius = 5f;
 		public float size = 0.2f;
@@ -28,10 +27,6 @@ namespace WatercolorBlueSystem {
 				block.SetColor(PROP_COLOR, new Color(Random.value, Random.value, Random.value));
 				r.SetPropertyBlock(block);
 			}
-		}
-
-		void Update () {
-			transform.localRotation *= Quaternion.Euler(angularVelocity * Time.deltaTime);
 		}
 	}
 }
