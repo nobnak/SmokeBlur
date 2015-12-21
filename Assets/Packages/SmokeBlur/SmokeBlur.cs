@@ -87,6 +87,10 @@ namespace SmokeBlurSystem {
 			_blurTex.wrapMode = TextureWrapMode.Clamp;
 			_blurTex.filterMode = FilterMode.Bilinear;
 			_blurTex.antiAliasing = (QualitySettings.antiAliasing == 0 ? 1 : QualitySettings.antiAliasing);
+			var oldRT = RenderTexture.active;
+			RenderTexture.active = _blurTex;
+			GL.Clear(true, true, Color.clear);
+			RenderTexture.active = oldRT;
 			_blurTex.Create ();
 			return _blurTex;
 		}
