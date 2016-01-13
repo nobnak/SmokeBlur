@@ -5,6 +5,8 @@ namespace SmokeBlurSystem {
 
 	[RequireComponent(typeof(Camera))]
 	public class SmokeBlur : MonoBehaviour {
+		public enum AlphaModeEnum { DontUse = 0, Use }
+
 		public const string PROP_ACCUM = "_Accum";
 		public const string PROP_ATTEN = "_Atten";
 		public const string PROP_BLUR_MAT = "_BlurMat";
@@ -12,9 +14,14 @@ namespace SmokeBlurSystem {
 		public const int PASS_ACCUM = 0;
 		public const int PASS_BLUR = 1;
 		public const int PASS_ATTEN = 2;
+		public const int PASS_ALPHA_BLEND = 3;
+
+		public const string KW_ALPHA_DONTUSE = "AlphaDontUse";
+		public const string KW_ALPHA_USE = "AlphaUse";
 
 		public Shader shader;
 
+		public AlphaModeEnum alphaMode;
 		public float accum = 0.8f;
 		public float atten = 0.001f;
 		public float blurSigma = 0.85f;
@@ -55,6 +62,15 @@ namespace SmokeBlurSystem {
 			_mat.SetFloat(PROP_ACCUM, accum);
 			_mat.SetFloat(PROP_ATTEN, atten);
 			_mat.SetMatrix(PROP_BLUR_MAT, _blurMat);
+			_mat.shaderKeywords = null;
+			switch (alphaMode) {
+			case AlphaModeEnum.DontUse:
+				_mat.EnableKeyword(KW_ALPHA_DONTUSE);
+				break;
+			case AlphaModeEnum.Use:
+				_mat.EnableKeyword(KW_ALPHA_USE);
+				break;
+			}
 
 			_blurTex1.DiscardContents();
 			Graphics.Blit(_blurTex0, _blurTex1, _mat, PASS_ATTEN);
@@ -68,7 +84,15 @@ namespace SmokeBlurSystem {
 
 			Graphics.Blit(src, _blurTex0, _mat, PASS_ACCUM);
 
-			Graphics.Blit(_blurTex0, dst);
+			switch (alphaMode) {
+			case AlphaModeEnum.DontUse:
+				Graphics.Blit(_blurTex0, dst);
+				break;
+			case AlphaModeEnum.Use:
+				Graphics.Blit(src, dst);
+				Graphics.Blit(_blurTex0, dst, _mat, PASS_ALPHA_BLEND);
+				break;
+			}
 		}
 
 		void ReleaseTex() {

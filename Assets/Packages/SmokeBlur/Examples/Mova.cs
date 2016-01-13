@@ -10,6 +10,7 @@ namespace SmokeBlurSystem {
 		public int count = 100;
 		public float radius = 5f;
 		public float size = 0.2f;
+		public Color baseColor = Color.white;
 
 		void Start() {
 			for (var i = 0; i < count; i++) {
@@ -24,7 +25,8 @@ namespace SmokeBlurSystem {
 				var r = c.GetComponent<Renderer>();
 				var block = new MaterialPropertyBlock();
 				r.GetPropertyBlock(block);
-				block.SetColor(PROP_COLOR, new Color(Random.value, Random.value, Random.value));
+				var color = baseColor * new Color(Random.value, Random.value, Random.value, 1f);
+				block.SetColor(PROP_COLOR, color);
 				r.SetPropertyBlock(block);
 			}
 		}

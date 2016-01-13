@@ -39,11 +39,16 @@
 			#pragma target 5.0
 			#pragma vertex vert
 			#pragma fragment frag
+			#pragma multi_compile AlphaDontUse AlphaUse
 			#include "UnityCG.cginc"
 			
 			fixed4 frag (v2f i) : SV_Target {
 				fixed4 c = tex2D(_MainTex, i.uv);
+				#ifdef AlphaUse
 				return float4(c.rgb, c.a * _Accum);
+				#else
+				return float4(c.rgb, _Accum);
+				#endif
 			}
 			ENDCG
 		}
@@ -81,6 +86,23 @@
 			
 			fixed4 frag (v2f i) : SV_Target {
 				return (1.0 - _Atten) * tex2D(_MainTex, i.uv);
+			}
+			ENDCG
+		}
+
+		// Alpha Blend
+		Pass {
+			Blend SrcAlpha OneMinusSrcAlpha
+
+			CGPROGRAM
+			#pragma target 5.0
+			#pragma vertex vert
+			#pragma fragment frag
+			#include "UnityCG.cginc"
+			
+			fixed4 frag (v2f i) : SV_Target {
+				float4 c = tex2D(_MainTex, i.uv);
+				return c;
 			}
 			ENDCG
 		}
