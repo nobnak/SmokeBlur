@@ -16,9 +16,6 @@ namespace SmokeBlurSystem {
 		public const int PASS_ATTEN = 2;
 		public const int PASS_ALPHA_BLEND = 3;
 
-		public const string KW_ALPHA_DONTUSE = "AlphaDontUse";
-		public const string KW_ALPHA_USE = "AlphaUse";
-
 		public Shader shader;
 
 		public AlphaModeEnum alphaMode;
@@ -62,15 +59,6 @@ namespace SmokeBlurSystem {
 			_mat.SetFloat(PROP_ACCUM, accum);
 			_mat.SetFloat(PROP_ATTEN, atten);
 			_mat.SetMatrix(PROP_BLUR_MAT, _blurMat);
-			_mat.shaderKeywords = null;
-			switch (alphaMode) {
-			case AlphaModeEnum.DontUse:
-				_mat.EnableKeyword(KW_ALPHA_DONTUSE);
-				break;
-			case AlphaModeEnum.Use:
-				_mat.EnableKeyword(KW_ALPHA_USE);
-				break;
-			}
 
 			_blurTex1.DiscardContents();
 			Graphics.Blit(_blurTex0, _blurTex1, _mat, PASS_ATTEN);
