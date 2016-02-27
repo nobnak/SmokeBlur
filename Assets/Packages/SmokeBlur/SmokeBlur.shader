@@ -1,34 +1,52 @@
 ﻿Shader "Hidden/SmokeBlur" {
 	Properties {
 		_MainTex ("Texture", 2D) = "white" {}
+		_SubTex ("Sub Texture", 2D) = "black" {}
 		_Accum ("Accumulation", Range(0.01, 1)) = 0.01
 		_Atten ("Attenuation", Range(0, 1)) = 0.01
+		_Depth ("Smoke Depth", Float) = 0.01
 	}
 	SubShader {
 		Cull Off ZWrite Off ZTest Always
+		ColorMask RGBA
 
 		CGINCLUDE
-		struct appdata {
-			float4 vertex : POSITION;
-			float2 uv : TEXCOORD0;
-		};
-		struct v2f {
-			float2 uv : TEXCOORD0;
-			float4 vertex : SV_POSITION;
-		};
+			#pragma target 5.0
+			#include "UnityCG.cginc"
+			#include "Depth.cginc"
 
-		sampler2D _MainTex;
-		float4 _MainTex_TexelSize;
-		float4x4 _BlurMat;
-		float _Accum;
-		float _Atten;
+			struct appdata {
+				float4 vertex : POSITION;
+				float2 uv : TEXCOORD0;
+			};
+			struct v2f {
+				float2 uv : TEXCOORD0;
+				float2 uv1 : TEXCOORD1;
+				float4 vertex : SV_POSITION;
+			};
 
-		v2f vert (appdata v) {
-			v2f o;
-			o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
-			o.uv = v.uv;
-			return o;
-		}
+			sampler2D _MainTex;
+			float4 _MainTex_TexelSize;
+			sampler2D _SubTex;
+			float4 _SubTex_TexelSize;
+			float4x4 _BlurMat;
+			float _Accum;
+			float _Atten;
+			float _Depth;
+
+			sampler2D _CameraDepthTexture;
+
+			v2f vert (appdata v) {
+				float2 uvFromBottom = v.uv;
+				if (_MainTex_TexelSize.y < 0)
+					uvFromBottom.y = 1 - uvFromBottom.y;
+
+				v2f o;
+				o.vertex = mul(UNITY_MATRIX_MVP, v.vertex);
+				o.uv = v.uv;
+				o.uv1 = uvFromBottom;
+				return o;
+			}
 		ENDCG
 
 		// Accumulation
@@ -36,10 +54,8 @@
 			Blend SrcAlpha OneMinusSrcAlpha
 
 			CGPROGRAM
-			#pragma target 5.0
 			#pragma vertex vert
 			#pragma fragment frag
-			#include "UnityCG.cginc"
 			
 			fixed4 frag (v2f i) : SV_Target {
 				fixed4 c = tex2D(_MainTex, i.uv);
@@ -51,10 +67,8 @@
 		// Blur
 		Pass {
 			CGPROGRAM
-			#pragma target 5.0
 			#pragma vertex vert
 			#pragma fragment frag
-			#include "UnityCG.cginc"
 			
 			fixed4 frag (v2f i) : SV_Target {
 				float2 d = _MainTex_TexelSize.xy;
@@ -74,10 +88,8 @@
 		// Attenuation
 		Pass {
 			CGPROGRAM
-			#pragma target 5.0
 			#pragma vertex vert
 			#pragma fragment frag
-			#include "UnityCG.cginc"
 			
 			fixed4 frag (v2f i) : SV_Target {
 				return (1.0 - _Atten) * tex2D(_MainTex, i.uv);
@@ -85,19 +97,19 @@
 			ENDCG
 		}
 
-		// Alpha Blend
+		// Depth Alpha Blend
 		Pass {
-			Blend One OneMinusSrcAlpha
-
 			CGPROGRAM
-			#pragma target 5.0
 			#pragma vertex vert
 			#pragma fragment frag
-			#include "UnityCG.cginc"
-			
+
 			fixed4 frag (v2f i) : SV_Target {
-				float4 c = tex2D(_MainTex, i.uv);
-				return c;
+				float zeye = Z2EyeDepth(tex2D(_CameraDepthTexture, i.uv1));
+				float4 csrc = tex2D(_MainTex, i.uv);
+				float4 csmoke = tex2D(_SubTex, i.uv1);
+
+				float d = saturate(csmoke.a * (1.0 - exp(-zeye * _Depth)));
+				return lerp(csrc, csmoke, d);
 			}
 			ENDCG
 		}

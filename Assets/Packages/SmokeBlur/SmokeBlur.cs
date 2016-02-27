@@ -5,10 +5,12 @@ namespace SmokeBlurSystem {
 
 	[RequireComponent(typeof(Camera))]
 	public class SmokeBlur : MonoBehaviour {
-		public enum AlphaModeEnum { DontUse = 0, Use }
+		public enum DebugModeEnum { None = 0, Output_Blur = 1 }
 
+		public const string PROP_SUB_TEX = "_SubTex";
 		public const string PROP_ACCUM = "_Accum";
 		public const string PROP_ATTEN = "_Atten";
+		public const string PROP_SMOKE_DEPTH = "_Depth";
 		public const string PROP_BLUR_MAT = "_BlurMat";
 
 		public const int PASS_ACCUM = 0;
@@ -18,17 +20,20 @@ namespace SmokeBlurSystem {
 
 		public Shader shader;
 
-		public AlphaModeEnum alphaMode;
+		public DebugModeEnum debugMode;
 		public float accum = 0.8f;
 		public float atten = 0.001f;
 		public float blurSigma = 0.85f;
 		public int blurIter = 3;
+		public float smokeDepth = 0.01f;
 
 		Material _mat;
 		Matrix4x4 _blurMat;
 		RenderTexture _blurTex0, _blurTex1;
+		Camera _attachedCamera;
 
-		void Start() {
+		void Awake() {
+			_attachedCamera = GetComponent<Camera> ();
 			_mat = new Material(shader);
 		}
 		void OnDestroy() {
@@ -40,6 +45,7 @@ namespace SmokeBlurSystem {
 			atten = Mathf.Clamp01(atten);
 			blurSigma = Mathf.Clamp01(blurSigma);
 			blurIter = Mathf.Clamp(blurIter, 1, 10);
+			smokeDepth = Mathf.Clamp (smokeDepth, 0, 1);
 
 			var coeff = -1f / (2f * blurSigma * blurSigma);
 			var f11 = 1f;
@@ -49,6 +55,8 @@ namespace SmokeBlurSystem {
 			_blurMat[1, 1] = invSum * f11;
 			_blurMat[0, 1] = _blurMat[1, 0] = _blurMat[2, 1] = _blurMat[1, 2] = invSum * f12;
 			_blurMat[0, 0] = _blurMat[2, 0] = _blurMat[0, 2] = _blurMat[2, 2] = invSum * f22;
+
+			_attachedCamera.depthTextureMode = DepthTextureMode.Depth;
 		}
 		void OnRenderImage(RenderTexture src, RenderTexture dst) {
 			if (_blurTex0 == null || _blurTex0.width != src.width || _blurTex0.height != src.height) {
@@ -72,13 +80,13 @@ namespace SmokeBlurSystem {
 
 			Graphics.Blit(src, _blurTex0, _mat, PASS_ACCUM);
 
-			switch (alphaMode) {
-			case AlphaModeEnum.DontUse:
-				Graphics.Blit(_blurTex0, dst);
-				break;
-			case AlphaModeEnum.Use:
-				Graphics.Blit(src, dst);
-				Graphics.Blit(_blurTex0, dst, _mat, PASS_ALPHA_BLEND);
+			_mat.SetTexture (PROP_SUB_TEX, _blurTex0);
+			_mat.SetFloat (PROP_SMOKE_DEPTH, smokeDepth);
+			Graphics.Blit(src, dst, _mat, PASS_ALPHA_BLEND);
+
+			switch (debugMode) {
+			case DebugModeEnum.Output_Blur:
+				Graphics.Blit (_blurTex0, dst);
 				break;
 			}
 		}
